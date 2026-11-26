@@ -10,6 +10,7 @@ from ui.api_usage import render_api_usage
 from ui.devices_mappings import render_devices_mappings
 from ui.history_analytics import render_history_analytics
 from ui.live_dashboard import render_live_dashboard
+from ui.mobile_view import render_mobile_app
 from ui.real_view import render_real_view
 from ui.services import (
     fetch_live_dashboard,
@@ -172,30 +173,34 @@ def _render_main_content() -> None:
 
     configured_devices = [inv.device_sn for inv in live.inverters] or health.configured_devices
 
+    if mobile:
+        render_mobile_app(live)
+        return
+
     tab_live, tab_real, tab_history, tab_devices, tab_usage = st.tabs(
         [
-            "⚡ Live" if mobile else "⚡ Live Dashboard",
-            "☀️ Panels" if mobile else "☀️ Real View",
-            "📈 History" if mobile else "📈 History & Analytics",
-            "🔧 Devices" if mobile else "🔧 Devices & Mappings",
-            "🖥️ API" if mobile else "🖥️ API Usage",
+            "⚡ Live Dashboard",
+            "☀️ Real View",
+            "📈 History & Analytics",
+            "🔧 Devices & Mappings",
+            "🖥️ API Usage",
         ]
     )
 
     with tab_live:
-        render_live_dashboard(live, mobile=mobile)
+        render_live_dashboard(live, mobile=False)
 
     with tab_real:
-        render_real_view(live, mobile=mobile)
+        render_real_view(live, mobile=False)
 
     with tab_history:
-        render_history_analytics(configured_devices, mobile=mobile)
+        render_history_analytics(configured_devices, mobile=False)
 
     with tab_devices:
-        render_devices_mappings(mobile=mobile)
+        render_devices_mappings(mobile=False)
 
     with tab_usage:
-        render_api_usage(mobile=mobile)
+        render_api_usage(mobile=False)
 
 
 if st.session_state.auto_refresh_enabled:
