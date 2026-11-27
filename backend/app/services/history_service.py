@@ -162,6 +162,7 @@ def fetch_and_store_history(
             errors.append(msg)
             continue
 
+        seen_in_batch: Dict[str, HistoricalReading] = {}
         for item in buckets:
             if not isinstance(item, dict):
                 continue
@@ -169,7 +170,7 @@ def fetch_and_store_history(
             if not period_key:
                 continue
             energy_kwh, power_w = _extract_energy_and_power(item, mapping)
-            existing = db.scalar(
+            existing = seen_in_batch.get(period_key) or db.scalar(
                 select(HistoricalReading).where(
                     HistoricalReading.device_sn == sn,
                     HistoricalReading.granularity == granularity,
@@ -181,17 +182,18 @@ def fetch_and_store_history(
                 existing.power_w = power_w
                 existing.raw_json = json.dumps(item)
                 existing.updated_at = now
+                seen_in_batch[period_key] = existing
             else:
-                db.add(
-                    HistoricalReading(
-                        device_sn=sn,
-                        granularity=granularity,
-                        period_key=period_key,
-                        energy_kwh=energy_kwh,
-                        power_w=power_w,
-                        raw_json=json.dumps(item),
-                    )
+                obj = HistoricalReading(
+                    device_sn=sn,
+                    granularity=granularity,
+                    period_key=period_key,
+                    energy_kwh=energy_kwh,
+                    power_w=power_w,
+                    raw_json=json.dumps(item),
                 )
+                db.add(obj)
+                seen_in_batch[period_key] = obj
             records_saved += 1
 
     status = "success" if not errors else ("partial" if records_saved > 0 else "error")
